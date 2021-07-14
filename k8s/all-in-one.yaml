@@ -1,0 +1,133 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-over-xds
+  namespace: istio-system
+  labels:
+    app: mcp-over-xds
+spec:
+  selector:
+    matchLabels:
+      app: mcp-over-xds
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mcp-over-xds
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      serviceAccountName: mcp-over-xds
+      containers:
+        - name: mcp-over-xds
+          image: zirain/mcp-over-xds:main-latest
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mcp-over-xds
+  namespace: istio-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: mcp-over-xds
+  name: mcp-over-xds
+  namespace: istio-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - events
+    verbs:
+      - '*'
+  - verbs:
+      - '*'
+    apiGroups:
+      - coordination.k8s.io
+    resources:
+      - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app: mcp-over-xds
+  name: mcp-over-xds
+  namespace: istio-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: mcp-over-xds
+subjects:
+  - kind: ServiceAccount
+    name: mcp-over-xds
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app: mcp-over-xds
+  name: mcp-over-xds
+  namespace: istio-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+  - apiGroups:
+      - networking.istio.io
+    resources:
+      - '*'
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - redis.mcp-over-xds.io
+    resources:
+      - '*'
+    verbs:
+      - get
+      - watch
+      - list
+      - update
+      - patch
+      - create
+      - delete
+  - apiGroups:
+      - networking.istio.io
+    resources:
+      - virtualservices
+      - destinationrules
+      - envoyfilters
+      - serviceentries
+    verbs:
+      - get
+      - watch
+      - list
+      - update
+      - patch
+      - create
+      - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app: mcp-over-xds
+  name: mcp-over-xds
+  namespace: istio-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: mcp-over-xds
+subjects:
+  - kind: ServiceAccount
+    name: mcp-over-xds
+    namespace: istio-system
